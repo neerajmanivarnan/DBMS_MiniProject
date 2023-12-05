@@ -39,35 +39,27 @@ public class RevisedTabs {
         // Home tab (non-functional)
         JPanel homePanel = new JPanel();
         tabbedPane.addTab("Home", null, homePanel, "Home tab");
+        setTabSize(tabbedPane, 0);
 
         // Teacher tab (non-functional)
         JPanel teacherPanel = new JPanel();
         tabbedPane.addTab("Teacher", null, teacherPanel, "Teacher tab");
+        setTabSize(tabbedPane, 1);
 
         // Time Table tab (non-functional)
         JPanel timeTablePanel = new JPanel();
         tabbedPane.addTab("Time Table", null, timeTablePanel, "Time Table tab");
+        setTabSize(tabbedPane, 2);
 
         // Class Time Table tab (functional)
         JPanel classTimeTablePanel = createClassTimeTablePanel();
         tabbedPane.addTab("Class Time Table", null, classTimeTablePanel, "Class Time Table tab");
+        setTabSize(tabbedPane, 3);
 
         // Attendance tab (non-functional)
         JPanel attendancePanel = new JPanel();
         tabbedPane.addTab("Attendance", null, attendancePanel, "Attendance tab");
-
-        // Increase tab height and adjust tab width
-        int tabWidth = frame.getWidth() / 5;
-        int tabHeight = 60;
-
-        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-            tabbedPane.setTabComponentAt(i, new JLabel(tabbedPane.getTitleAt(i)) {
-                @Override
-                public Dimension getPreferredSize() {
-                    return new Dimension(tabWidth, tabHeight);
-                }
-            });
-        }
+        setTabSize(tabbedPane, 4);
 
         // Add top header and tabs to the main frame
         frame.add(topHeader, BorderLayout.NORTH);
@@ -75,6 +67,13 @@ public class RevisedTabs {
 
         // Set the frame visibility
         frame.setVisible(true);
+    }
+
+    private void setTabSize(JTabbedPane tabbedPane, int tabIndex) {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int tabWidth = screenSize.width / 5; // Each tab takes one-fifth of the screen width
+        tabbedPane.setPreferredSize(new Dimension(tabWidth * 5, 50)); // Total width for all tabs
+        tabbedPane.getComponentAt(tabIndex).setPreferredSize(new Dimension(tabWidth, 50));
     }
 
     private JPanel createClassTimeTablePanel() {
@@ -89,7 +88,6 @@ public class RevisedTabs {
         // Create class selection components
         JLabel classLabel = new JLabel("Select Class:");
         classLabel.setFont(new Font("Arial", Font.BOLD, 30));
-        classLabel.setForeground(Color.WHITE);
         classComboBox = new JComboBox<>(new String[]{"10", "9", "8"});
         classComboBox.setFont(new Font("Arial", Font.PLAIN, 24));
         classComboBox.addActionListener(new ActionListener() {
@@ -106,14 +104,13 @@ public class RevisedTabs {
         // Create division selection components
         JLabel divisionLabel = new JLabel("Select Division:");
         divisionLabel.setFont(new Font("Arial", Font.BOLD, 30));
-        divisionLabel.setForeground(Color.WHITE);
         divisionComboBox = new JComboBox<>();
         divisionComboBox.setFont(new Font("Arial", Font.PLAIN, 24));
 
         // Create "Show Time Table" button
         JButton showTimeTableButton = new JButton("Show Time Table");
         showTimeTableButton.setFont(new Font("Arial", Font.BOLD, 28));
-        showTimeTableButton.setBackground(new Color(47, 79, 79)); // Dark Slate Green
+        showTimeTableButton.setBackground(new Color(0, 100, 0)); // Dark Green
         showTimeTableButton.setForeground(Color.WHITE);
         showTimeTableButton.addActionListener(new ActionListener() {
             @Override
@@ -129,29 +126,36 @@ public class RevisedTabs {
         // Create table to display timetable
         timetableTable = new JTable();
         timetableTable.setFont(new Font("Arial", Font.PLAIN, 20));
-        timetableTable.setRowHeight(40);
-        timetableTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 24));
-        timetableTable.getTableHeader().setBackground(new Color(47, 79, 79)); // Dark Slate Green
-        timetableTable.getTableHeader().setForeground(Color.WHITE);
+        timetableTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 22));
+        timetableTable.setSelectionBackground(new Color(173, 216, 230)); // Light Blue
+
+        // Increase cell height
+        timetableTable.setRowHeight(timetableTable.getRowHeight() + 15);
+
+        // Set cell renderer to center-align text in cells
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
         timetableTable.setDefaultRenderer(Object.class, centerRenderer);
-
-        JScrollPane tableScrollPane = new JScrollPane(timetableTable);
 
         // Add components to the form panel
         formPanel.add(classLabel);
         formPanel.add(classComboBox);
         formPanel.add(divisionLabel);
         formPanel.add(divisionComboBox);
-        formPanel.add(new JLabel()); // Empty label for spacing
+        formPanel.add(new JLabel()); // Empty space for layout
         formPanel.add(showTimeTableButton);
-        formPanel.add(new JLabel()); // Empty label for spacing
-        formPanel.add(new JLabel()); // Empty label for spacing
 
-        // Add form panel and table to the classTimeTablePanel
+        // Create a panel for the timetable
+        JPanel timetablePanel = new JPanel();
+        timetablePanel.setLayout(new BorderLayout());
+        timetablePanel.setBorder(BorderFactory.createEmptyBorder(0, 40, 40, 40));
+
+        // Add the timetable table to the timetable panel
+        timetablePanel.add(new JScrollPane(timetableTable), BorderLayout.CENTER);
+
+        // Add the form panel and timetable panel to the Class Time Table panel
         classTimeTablePanel.add(formPanel, BorderLayout.NORTH);
-        classTimeTablePanel.add(tableScrollPane, BorderLayout.CENTER);
+        classTimeTablePanel.add(timetablePanel, BorderLayout.CENTER);
 
         return classTimeTablePanel;
     }
