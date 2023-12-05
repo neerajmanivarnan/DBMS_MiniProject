@@ -1,21 +1,23 @@
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
 
-public class Window {
+public class EnhancedGUI {
 
     private JFrame frame;
     private JComboBox<String> classComboBox;
     private JComboBox<String> divisionComboBox;
-    private JTextArea timetableTextArea;
+    private JTable timetableTable;
 
-    public Window() {
+    public EnhancedGUI() {
         // Create the main frame
-        frame = new JFrame("Class Timetable App");
+        frame = new JFrame("Class Selection App");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(500, 400);
+        frame.setExtendedState(JFrame.MAXIMIZED_BOTH); // Set frame to full-screen
         frame.setLayout(new BorderLayout());
 
         // Create a panel for the form
@@ -26,16 +28,26 @@ public class Window {
         // Create class selection components
         JLabel classLabel = new JLabel("Select Class:");
         classComboBox = new JComboBox<>(new String[]{"10", "9", "8"});
-        classComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        classComboBox.setFont(new Font("Arial", Font.PLAIN, 18));
+        classComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    updateDivisionComboBox();
+                } catch (ClassNotFoundException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
 
         // Create division selection components
         JLabel divisionLabel = new JLabel("Select Division:");
         divisionComboBox = new JComboBox<>();
-        divisionComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        divisionComboBox.setFont(new Font("Arial", Font.PLAIN, 18));
 
         // Create "Submit" button
         JButton submitButton = new JButton("Submit");
-        submitButton.setFont(new Font("Arial", Font.BOLD, 16));
+        submitButton.setFont(new Font("Arial", Font.BOLD, 20));
         submitButton.setBackground(new Color(34, 139, 34)); // Dark Green
         submitButton.setForeground(Color.WHITE);
         submitButton.addActionListener(new ActionListener() {
@@ -49,10 +61,9 @@ public class Window {
             }
         });
 
-        // Create text area to display timetable
-        timetableTextArea = new JTextArea();
-        timetableTextArea.setEditable(false);
-        timetableTextArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        // Create table to display timetable
+        timetableTable = new JTable();
+        timetableTable.setFont(new Font("Monospaced", Font.PLAIN, 18));
 
         // Add components to the form panel
         formPanel.add(classLabel);
@@ -67,8 +78,8 @@ public class Window {
         timetablePanel.setLayout(new BorderLayout());
         timetablePanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 20));
 
-        // Add the timetable text area to the timetable panel
-        timetablePanel.add(new JScrollPane(timetableTextArea), BorderLayout.CENTER);
+        // Add the timetable table to the timetable panel
+        timetablePanel.add(new JScrollPane(timetableTable), BorderLayout.CENTER);
 
         // Add the form panel and timetable panel to the main frame
         frame.add(formPanel, BorderLayout.NORTH);
@@ -78,7 +89,29 @@ public class Window {
         frame.setVisible(true);
     }
 
-    
+    private void updateDivisionComboBox() throws ClassNotFoundException {
+        // Update the divisionComboBox with the divisions based on the selected class
+        String selectedClass = (String) classComboBox.getSelectedItem();
+        String[] divisions = getDivisions(selectedClass);
+
+        // Update the divisionComboBox with the fetched divisions
+        divisionComboBox.removeAllItems();
+        for (String division : divisions) {
+            divisionComboBox.addItem(division);
+        }
+    }
+
+    private void displaySelectedClass() throws ClassNotFoundException {
+        // Get the selected class and division
+        String selectedClass = (String) classComboBox.getSelectedItem();
+        String selectedDivision = (String) divisionComboBox.getSelectedItem();
+
+        // Construct the class identifier (e.g., "10A")
+        String classIdentifier = selectedClass + selectedDivision;
+
+        // Fetch timetable for the selected class from the database
+        fetchTimetable(classIdentifier);
+    }
 
     private String[] getDivisions(String selectedClass) {
         // Simulate fetching divisions from the database
@@ -95,18 +128,6 @@ public class Window {
         }
     }
 
-
-    private void displaySelectedClass() throws ClassNotFoundException {
-        // Get the selected class and division
-        String selectedClass = (String) classComboBox.getSelectedItem();
-        String selectedDivision = (String) divisionComboBox.getSelectedItem();
-
-        // Construct the class identifier (e.g., "10A")
-        String classIdentifier = selectedClass + selectedDivision;
-
-        // Fetch timetable for the selected class from the database
-        fetchTimetable(classIdentifier);
-    }
     private void fetchTimetable(String classIdentifier) throws ClassNotFoundException {
         // JDBC connectivity to fetch timetable for the given classIdentifier
         String jdbcUrl = "jdbc:mysql://localhost:3306/DBMS";
@@ -125,22 +146,27 @@ public class Window {
             Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ResultSet resultSet = statement.executeQuery(query);
 
-            // Process the ResultSet and display the timetable in the text area
-            StringBuilder timetableInfo = new StringBuilder();
-            for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
-                timetableInfo.append(String.format("%-15s", resultSet.getMetaData().getColumnName(i)));
-            }
-            timetableInfo.append("\n");
+            // Process the ResultSet and display the timetable in the table
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columns = metaData.getColumnCount();
 
+            // Create table model
+            DefaultTableModel tableModel = new DefaultTableModel();
+            for (int i = 1; i <= columns; i++) {
+                tableModel.addColumn(metaData.getColumnName(i));
+            }
+
+            // Add rows to the table model
             while (resultSet.next()) {
-                for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
-                    timetableInfo.append(String.format("%-15s", resultSet.getString(i)));
+                Object[] row = new Object[columns];
+                for (int i = 1; i <= columns; i++) {
+                    row[i - 1] = resultSet.getObject(i);
                 }
-                timetableInfo.append("\n");
+                tableModel.addRow(row);
             }
 
-            // Display timetable information in the text area
-            timetableTextArea.setText("Selected Class: " + classIdentifier + "\n\n" + timetableInfo);
+            // Set the table model to the timetable table
+            timetableTable.setModel(tableModel);
 
             // Close the connection
             connection.close();
@@ -150,24 +176,11 @@ public class Window {
         }
     }
 
-    private void updateDivisionComboBox() throws ClassNotFoundException {
-        // Update the divisionComboBox with the divisions based on the selected class
-        String selectedClass = (String) classComboBox.getSelectedItem();
-        String[] divisions = getDivisions(selectedClass);
-
-        // Update the divisionComboBox with the fetched divisions
-        divisionComboBox.removeAllItems();
-        for (String division : divisions) {
-            divisionComboBox.addItem(division);
-        }
-    }
-    // Existing methods...
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new Window();
+                new EnhancedGUI();
             }
         });
     }
