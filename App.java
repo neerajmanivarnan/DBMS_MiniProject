@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import java.util.Scanner;
+
 //import java.util.Scanner;
 import java.sql.*;
 // import javax.sql;
@@ -20,6 +22,11 @@ public class App {
         String user = "neeraj";
         String password = "pass1234";
 
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Enter class name : ");
+        String ClassName = sc.nextLine();
+        String query = "Select * from timetable_"+ClassName;
+
         try {
 
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -31,7 +38,7 @@ public class App {
 
             Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-            ResultSet resultSet = statement.executeQuery("select * from timetable_10A");
+            ResultSet resultSet = statement.executeQuery(query);
 
             // Close the connection when done
             // Print column names
